@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>YouTube Channel ID Finder</title>
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const form = document.getElementById("urlForm");
+      const resultDiv = document.getElementById("result");
+      const confirmationDiv = document.getElementById("confirmation");
+      const stopAndDownloadBtn = document.getElementById("stop-and-download");
+      const downloadJsonBtn = document.getElementById("download-json");
+      const maxSubmissionsMessage = document.getElementById("max-submissions-message");
+
+      let submissionCount = 0;
+
+      form.addEventListener("submit", function(event) {
+        event.preventDefault();
+        const url = document.getElementById("url").value;
+
+        fetch("/.netlify/functions/get_channel_id", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              url
+            })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.channel_id) {
+              resultDiv.innerHTML = `
+                <p><strong>Channel ID:</strong> ${data.channel_id}</p>
+                <p><strong>Channel Owner:</strong> <a href="${data.owner_link}" target="_blank">${data.owner_link}</a></p>
+                <p><strong>Channel Start Date:</strong> ${data.start_date}</p>
+                <p><strong>YouTube Handle:</strong> <a href="${data.handle_link}" target="_blank">${data.handle_link}</a></p>
+                <p><strong>Channel Description:</strong> ${data.description}</p>
+                <p><strong>Subscribers:</strong> ${data.subscriber_count}</p>
+                <p><strong>Total Views:</strong> ${data.view_count}</p>
+                <p><strong>Total Videos:</strong> ${data.video_count}</p>
+            `;
+            } else {
+              resultDiv.textContent = `Error: ${data.error}`;
+            }
+
+            document.getElementById("url").value = '';
+            confirmationDiv.innerHTML = "Channel submitted!";
+            confirmationDiv.style.color = "#007BFF";
+          })
+          .catch(error => {
+            console.error("Fetch error:", error);
+            resultDiv.textContent = "Failed to connect to server. Please try again.";
+          });
+      });
+
+      function handleServerResponse(response) {
+        stopAndDownloadBtn.style.display = 'block';
+
+        if (response.status === 'closed') {
+          stopAndDownloadBtn.style.display = 'none';
+          maxSubmissionsMessage.style.display = 'block';
+          downloadJsonBtn.style.display = 'block';
+        } else {
+          submissionCount++;
+          if (submissionCount >= 10) {
+            fetch('/download_json').then(response => response.json());
+          }
+        }
+      }
+
+      stopAndDownloadBtn.addEventListener('click', function() {
+        fetch('/download_json').then(response => response.json());
+      });
+
+      downloadJsonBtn.addEventListener('click', function() {
+        window.location.href = '/download_json';
+      });
+
+      fetch('/get_json_data').then(response => response.json()).then(data => {
+        if (data.status === 'success') {
+          const jsonDataStr = JSON.stringify(data.data, null, 2);
+          const textarea = document.createElement('textarea');
+          textarea.value = jsonDataStr;
+          textarea.rows = 10;
+          textarea.cols = 50;
+          document.body.appendChild(textarea);
+        } else {
+          console.error(data.message);
+        }
+      });
+
+      document.getElementById("url").addEventListener("input", function() {
+        if (this.value === "") {
+          resultDiv.textContent = "";
+          confirmationDiv.textContent = "";
+        }
+      });
+    });
+  </script>
+</head>
+
+<body>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #fff8f0;
+    }
+
+    .main-content {
+      max-width: 800px;
+      margin: 0 auto;
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 10px;
+    }
+
+    h1 {
+      color: #545863;
+    }
+
+    form {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #9191e9;
+      border-radius: 5px;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    button[type="submit"] {
+      background-color: #9191e9;
+      color: #fff;
+    }
+
+    button[type="button"] {
+      background-color: #f61067;
+      color: #fff;
+    }
+
+    button:hover {
+      opacity: 0.8;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 0.8em;
+    }
+
+    #max-submissions-message {
+      display: none;
+    }
+
+    #stop-and-download,
+    #download-json {
+      display: none;
+    }
+  </style>
+
+  <div class="main-content">
+    <h1>Find YouTube Channel ID</h1>
+    <form id="urlForm">
+      <label for="url">Enter YouTube URL:</label>
+      <input type="text" id="url" name="url">
+      <button type="submit">Find Channel ID</button>
+    </form>
+    <div id="result"></div>
+    <div id="confirmation"></div>
+    <div id="max-submissions-message">
+      <p>Maximum number of submissions reached. You can now download the JSON file.</p>
+    </div>
+    <button id="stop-and-download">Stop and Download</button>
+    <button id="download-json">Download JSON</button>
+  </div>
+
+  <footer>Bianvigano</a></footer>
+</body>
+
+</html>
